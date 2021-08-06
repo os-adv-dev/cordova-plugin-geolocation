@@ -281,10 +281,6 @@
         // return error
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageToErrorObject:POSITIONUNAVAILABLE];
     } else if (lData && lData.locationInfo) {
-        NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
-        [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
-        [formatter setMaximumFractionDigits:15];
-        [formatter setRoundingMode: NSNumberFormatterRoundUp];
         CLLocation* lInfo = lData.locationInfo;
         NSMutableDictionary* returnInfo = [NSMutableDictionary dictionaryWithCapacity:8];
         NSNumber* timestamp = [NSNumber numberWithDouble:([lInfo.timestamp timeIntervalSince1970] * 1000)];
@@ -294,8 +290,16 @@
         [returnInfo setObject:[NSNumber numberWithDouble:lInfo.horizontalAccuracy] forKey:@"accuracy"];
         [returnInfo setObject:[NSNumber numberWithDouble:lInfo.course] forKey:@"heading"];
         [returnInfo setObject:[NSNumber numberWithDouble:lInfo.altitude] forKey:@"altitude"];
-        [returnInfo setObject:[formatter stringFromNumber:[NSNumber numberWithDouble:lInfo.coordinate.latitude]] forKey:@"latitude"];
-        [returnInfo setObject:[formatter stringFromNumber:[NSNumber numberWithDouble:lInfo.coordinate.longitude]] forKey:@"longitude"];
+        
+        //Set maximum decimal digits to 15 for JS float compatibility
+        NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+        [formatter setMaximumFractionDigits:15];
+        [formatter setRoundingMode: NSNumberFormatterRoundUp];
+        NSString* latitude = [formatter stringFromNumber:[NSNumber numberWithDouble:lInfo.coordinate.latitude]];
+        NSString* longitude = [formatter stringFromNumber:[NSNumber numberWithDouble:lInfo.coordinate.longitude]];
+        
+        [returnInfo setObject:[formatter numberFromString: latitude] forKey:@"latitude"];
+        [returnInfo setObject:[formatter numberFromString: longitude] forKey:@"longitude"];
 
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:returnInfo];
         [result setKeepCallbackAsBool:keepCallback];
