@@ -107,26 +107,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
 
         LocationContext lc = locationContexts.get(requestCode);
 
-        if(ArrayUtils.contains(grantResults, PackageManager.PERMISSION_GRANTED)){
-            //do nothing, we have permission to ask for location
-        }
-        else{
+        //if we are granted either ACCESS_COARSE_LOCATION or ACCESS_FINE_LOCATION
+        if (ArrayUtils.contains(grantResults, PackageManager.PERMISSION_GRANTED)) {
+            if (lc != null) {
+                switch (lc.getType()) {
+                    case UPDATE:
+                        addWatch(lc);
+                        break;
+                    default:
+                        getLocation(lc);
+                        break;
+                }
+            }
+        } else {
             PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
             lc.getCallbackContext().sendPluginResult(result);
             locationContexts.delete(lc.getId());
-            return;
-        }
-
-        if (lc != null) {
-            switch(lc.getType()) {
-                case RETRIEVAL:
-                    getLocation(lc);
-                    break;
-
-                case UPDATE:
-                    addWatch(lc);
-                    break;
-            }
         }
     }
 
