@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixes
+- Fixed onRequestPermissionResult method to accept the approximate location option [RMET-823](https://outsystemsrd.atlassian.net/browse/RMET-823)
 
 ## [4.0.1-OS7]
 ### Fixes
