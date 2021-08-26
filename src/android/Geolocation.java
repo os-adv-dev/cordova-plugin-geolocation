@@ -5,13 +5,14 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.Manifest;
 import android.location.Location;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import android.util.SparseArray;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.ResolvableApiException;
+import com.google.android.gms.common.util.ArrayUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -106,14 +107,14 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
 
         LocationContext lc = locationContexts.get(requestCode);
 
-        for (int grantResult : grantResults) {
-            if (grantResult == PackageManager.PERMISSION_DENIED) {
-
-                PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
-                lc.getCallbackContext().sendPluginResult(result);
-                locationContexts.delete(lc.getId());
-                return;
-            }
+        if(ArrayUtils.contains(grantResults, PackageManager.PERMISSION_GRANTED)){
+            //do nothing, we have permission to ask for location
+        }
+        else{
+            PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
+            lc.getCallbackContext().sendPluginResult(result);
+            locationContexts.delete(lc.getId());
+            return;
         }
 
         if (lc != null) {
