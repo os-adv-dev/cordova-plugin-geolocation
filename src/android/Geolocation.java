@@ -120,9 +120,11 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
                 }
             }
         } else {
-            PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
-            lc.getCallbackContext().sendPluginResult(result);
-            locationContexts.delete(lc.getId());
+            if(lc != null){
+                PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
+                lc.getCallbackContext().sendPluginResult(result);
+                locationContexts.delete(lc.getId());
+            }
         }
     }
 
@@ -293,8 +295,8 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
                 else {
                     result = new PluginResult(PluginResult.Status.ERROR, LocationError.LOCATION_SETTINGS_ERROR.toJSON());
                     locationContext.getCallbackContext().sendPluginResult(result);
+                    locationContexts.remove(locationContext.getId());
                 }
-                locationContexts.remove(locationContext.getId());
             }
         };
 
