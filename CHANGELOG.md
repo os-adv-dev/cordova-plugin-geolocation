@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixes
+- Fixed Android AddWatch deny permissions crash [RMET-964](https://outsystemsrd.atlassian.net/browse/RMET-964)
 - Fixed onRequestPermissionResult method to accept the approximate location option [RMET-823](https://outsystemsrd.atlassian.net/browse/RMET-823)
 
 ## [4.0.1-OS7]
