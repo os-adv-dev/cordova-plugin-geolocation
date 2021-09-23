@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [4.0.1-OS8]
+### Fixes
+- Fixed GetLocations for iOS to return a number instead of a string [RMET-918](https://outsystemsrd.atlassian.net/browse/RMET-918)
+
 ## [4.0.1-OS7]
 ### Fixes
 - Fixed requestLocationUpdatesIfSettingsSatisfied method to show the user a dialog to enable location or change location settings [RMET-608](https://outsystemsrd.atlassian.net/browse/RMET-608)
