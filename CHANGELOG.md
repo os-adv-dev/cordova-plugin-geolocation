@@ -4,10 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.0.1-OS9]
 ### Fixes
 - Fixed Android AddWatch deny permissions crash [RMET-964](https://outsystemsrd.atlassian.net/browse/RMET-964)
 - Fixed onRequestPermissionResult method to accept the approximate location option [RMET-823](https://outsystemsrd.atlassian.net/browse/RMET-823)
+
+## [4.0.1-OS8]
+- Fixed GetLocation for iOS to return a number instead of a string [RMET-918](https://outsystemsrd.atlassian.net/browse/RMET-918)
 
 ## [4.0.1-OS7]
 ### Fixes
