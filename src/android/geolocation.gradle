@@ -1,0 +1,9 @@
+repositories {
+    mavenCentral()
+    maven {url 'https://developer.huawei.com/repo/'}
+}
+
+dependencies {
+    // Huawei Location dependency
+    implementation 'com.huawei.hms:location:6.8.0.300'
+}

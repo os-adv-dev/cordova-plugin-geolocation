@@ -74,6 +74,9 @@ xmlns:android="http://schemas.android.com/apk/res/android"
             <clobbers target="navigator.geolocation" />
         </js-module>
 
+        <!-- Added the gradle to Add Dependency Huawei Services -->
+        <framework src="src/android/geolocation.gradle" custom="true" type="gradleReference" />
+
     </platform>
 
     <!-- ios -->
