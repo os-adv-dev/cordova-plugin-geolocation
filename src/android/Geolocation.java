@@ -138,21 +138,20 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         if(id != null) {
             int requestId = id.hashCode();
             LocationContext lc = locationContexts.get(requestId);
+            PluginResult result;
 
             if(lc == null) {
-                PluginResult result = new PluginResult(PluginResult.Status.ERROR, LocationError.WATCH_ID_NOT_FOUND.toJSON());
-                callbackContext.sendPluginResult(result);
-            }
-            else {
+                result = new PluginResult(PluginResult.Status.ERROR, LocationError.WATCH_ID_NOT_FOUND.toJSON());
+            } else {
                 this.locationContexts.delete(requestId);
                 if (checkGMS()) {
                     fusedLocationClientGms.removeLocationUpdates(lc.getLocationCallback());
                 } else if (checkHMS()) {
                     fusedLocationClientHms.removeLocationUpdates(lc.getLocationCallbackHuawei());
                 }
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                callbackContext.sendPluginResult(result);
+                result = new PluginResult(PluginResult.Status.OK);
             }
+            callbackContext.sendPluginResult(result);
         }
     }
 
@@ -331,27 +330,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         try {
             JSONObject locationObject = LocationUtils.locationToJSON(location);
             PluginResult result = new PluginResult(PluginResult.Status.OK, locationObject);
-
-            if (locationContext.getType() == LocationContext.Type.UPDATE) {
-                result.setKeepCallback(true);
-            }
-            else {
-                locationContexts.delete(locationContext.getId());
-            }
-
-            locationContext.getCallbackContext().sendPluginResult(result);
-
+            setPluginResultData(result, locationContext);
         } catch (JSONException e) {
             PluginResult result = new PluginResult(PluginResult.Status.JSON_EXCEPTION, LocationError.SERIALIZATION_ERROR.toJSON());
-            if (locationContext.getType() == LocationContext.Type.UPDATE) {
-                result.setKeepCallback(true);
-            }
-            else {
-                locationContexts.delete(locationContext.getId());
-            }
-
-            locationContext.getCallbackContext().sendPluginResult(result);
+            setPluginResultData(result, locationContext);
         }
+    }
+
+    private void setPluginResultData(PluginResult result, LocationContext locationContext) {
+        if (locationContext.getType() == LocationContext.Type.UPDATE) {
+            result.setKeepCallback(true);
+        }
+        else {
+            locationContexts.delete(locationContext.getId());
+        }
+
+        locationContext.getCallbackContext().sendPluginResult(result);
     }
 
     private void requestLocationUpdatesIfSettingsSatisfiedGms(final LocationContext locationContext, final LocationRequest request) {
