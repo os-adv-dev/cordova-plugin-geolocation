@@ -43,7 +43,7 @@ public class LocationContext {
                             LocationContext.this.listener.onLocationResultError(LocationContext.this, LocationError.LOCATION_NULL);
                         }
                         else {
-                            LocationContext.this.listener.onLocationResultSuccess(LocationContext.this, locationResult);
+                            LocationContext.this.listener.onLocationResultSuccess(LocationContext.this, locationResult.getLocations());
                         }
                     }
                 }
@@ -57,14 +57,13 @@ public class LocationContext {
                             LocationContext.this.listener.onLocationResultError(LocationContext.this, LocationError.LOCATION_NULL);
                         }
                         else {
-                            LocationContext.this.listener.onLocationResultSuccessHuawei(LocationContext.this, locationResult);
+                            LocationContext.this.listener.onLocationResultSuccess(LocationContext.this, locationResult.getLocations());
                         }
                     }
                 }
             };
         }
     }
-
 
     public int getId() {
         return id;

@@ -8,12 +8,13 @@ import android.location.Location;
 import android.os.Looper;
 import android.util.SparseArray;
 
+import androidx.appcompat.app.AlertDialog;
+
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.common.util.ArrayUtils;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
@@ -33,13 +34,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.List;
+
 
 public class Geolocation extends CordovaPlugin implements OnLocationResultEventListener {
 
     private SparseArray<LocationContext> locationContexts;
     private FusedLocationProviderClient fusedLocationClientGms;
 
-    private com.huawei.hms.location.FusedLocationProviderClient fusedLocationProviderClientHms;
+    private com.huawei.hms.location.FusedLocationProviderClient fusedLocationClientHms;
 
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
 
@@ -52,7 +55,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         if(checkGMS()) {
             fusedLocationClientGms = LocationServices.getFusedLocationProviderClient(cordova.getActivity());
         } else if (checkHMS()) {
-            fusedLocationProviderClientHms = com.huawei.hms.location.LocationServices.getFusedLocationProviderClient(cordova.getActivity());
+            fusedLocationClientHms = com.huawei.hms.location.LocationServices.getFusedLocationProviderClient(cordova.getActivity());
         }
     }
 
@@ -83,23 +86,19 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      */
     private void flowGetLocationGmsOrHms(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int id = args.getString(3).hashCode();
+        LocationContext locationContext = new LocationContext(id, LocationContext.Type.RETRIEVAL, args, callbackContext, this, checkGMS() ? LocationContext.DeviceType.GOOGLE_SERVICES : LocationContext.DeviceType.HUAWEI_SERVICES);
+        locationContexts.put(id, locationContext);
 
-        if (checkGMS()) {
-            LocationContext lc = new LocationContext(id, LocationContext.Type.RETRIEVAL, args, callbackContext, this, LocationContext.DeviceType.GOOGLE_SERVICES);
-            locationContexts.put(id, lc);
-            if (hasPermission()) {
-                getLocationGms(lc);
+        if (hasPermission()) {
+            if (checkGMS()) {
+                getLocationGms(locationContext);
+            } else if(checkHMS()) {
+                getLocationHms(locationContext);
             } else {
-                PermissionHelper.requestPermissions(this, id, permissions);
+                popUpGoogleOrHuaweiServicesAreNotPresent();
             }
-        } else if (checkHMS()) {
-            LocationContext lc = new LocationContext(id, LocationContext.Type.RETRIEVAL, args, callbackContext, this, LocationContext.DeviceType.HUAWEI_SERVICES);
-            locationContexts.put(id, lc);
-            if (hasPermission()) {
-                getLocationHms(lc);
-            } else {
-                PermissionHelper.requestPermissions(this, id, permissions);
-            }
+        } else {
+            PermissionHelper.requestPermissions(this, id, permissions);
         }
     }
 
@@ -111,23 +110,19 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      */
     private void flowAddWatchGmsOrHms(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int id = args.getString(0).hashCode();
+        LocationContext lc = new LocationContext(id, LocationContext.Type.UPDATE, args, callbackContext, this,  checkGMS() ? LocationContext.DeviceType.GOOGLE_SERVICES : LocationContext.DeviceType.HUAWEI_SERVICES);
+        locationContexts.put(id, lc);
 
-        if (checkGMS()) {
-            LocationContext lc = new LocationContext(id, LocationContext.Type.UPDATE, args, callbackContext, this, LocationContext.DeviceType.GOOGLE_SERVICES);
-            locationContexts.put(id, lc);
-            if (hasPermission()) {
-                addWatch(lc);
+        if (hasPermission()) {
+            if (checkGMS()) {
+                addWatchGms(lc);
+            } else if(checkHMS()) {
+                addWatchHms(lc);
             } else {
-                PermissionHelper.requestPermissions(this, id, permissions);
+                popUpGoogleOrHuaweiServicesAreNotPresent();
             }
-        } else if (checkHMS()) {
-            LocationContext lc = new LocationContext(id, LocationContext.Type.UPDATE, args, callbackContext, this, LocationContext.DeviceType.HUAWEI_SERVICES);
-            locationContexts.put(id, lc);
-            if (hasPermission()) {
-                addWatchHuawei(lc);
-            } else {
-                PermissionHelper.requestPermissions(this, id, permissions);
-            }
+        } else {
+            PermissionHelper.requestPermissions(this, id, permissions);
         }
     }
 
@@ -138,10 +133,26 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      * @param callbackContext the callbackContext
      */
     private void flowClearWatchGmsOrHms(JSONArray args, CallbackContext callbackContext) {
-        if (checkGMS()) {
-            clearWatch(args, callbackContext);
-        } else if (checkHMS()) {
-            clearWatchHMS(args, callbackContext);
+        String id = args.optString(0);
+
+        if(id != null) {
+            int requestId = id.hashCode();
+            LocationContext lc = locationContexts.get(requestId);
+
+            if(lc == null) {
+                PluginResult result = new PluginResult(PluginResult.Status.ERROR, LocationError.WATCH_ID_NOT_FOUND.toJSON());
+                callbackContext.sendPluginResult(result);
+            }
+            else {
+                this.locationContexts.delete(requestId);
+                if (checkGMS()) {
+                    fusedLocationClientGms.removeLocationUpdates(lc.getLocationCallback());
+                } else if (checkHMS()) {
+                    fusedLocationClientHms.removeLocationUpdates(lc.getLocationCallbackHuawei());
+                }
+                PluginResult result = new PluginResult(PluginResult.Status.OK);
+                callbackContext.sendPluginResult(result);
+            }
         }
     }
 
@@ -167,21 +178,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         //if we are granted either ACCESS_COARSE_LOCATION or ACCESS_FINE_LOCATION
         if (ArrayUtils.contains(grantResults, PackageManager.PERMISSION_GRANTED)) {
             if (lc != null) {
-                switch (lc.getType()) {
-                    case UPDATE:
-                        if(checkGMS()) {
-                            addWatch(lc);
-                        } else if (checkHMS()) {
-                            addWatchHuawei(lc);
-                        }
-                        break;
-                    default:
-                        if(checkGMS()) {
-                            getLocationGms(lc);
-                        } else if (checkHMS()) {
-                            getLocationHms(lc);
-                        }
-                        break;
+                if (lc.getType() == LocationContext.Type.UPDATE) {
+                    if (checkGMS()) {
+                        addWatchGms(lc);
+                    } else if (checkHMS()) {
+                        addWatchHms(lc);
+                    } else {
+                        popUpGoogleOrHuaweiServicesAreNotPresent();
+                    }
+                } else {
+                    if (checkGMS()) {
+                        getLocationGms(lc);
+                    } else if (checkHMS()) {
+                        getLocationHms(lc);
+                    } else {
+                        popUpGoogleOrHuaweiServicesAreNotPresent();
+                    }
                 }
             }
         } else {
@@ -193,6 +205,10 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         }
     }
 
+    /**
+     * Get Location from Google Services inside
+     * @param locationContext the locationContext
+     */
     private void getLocationGms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
         long timeout = args.optLong(2);
@@ -245,7 +261,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      * Add Watch Locations in devices which contains google services
      * @param locationContext the locationContext
      */
-    private void addWatch(LocationContext locationContext) {
+    private void addWatchGms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
         boolean enableHighAccuracy = args.optBoolean(1, false);
         long maximumAge = args.optLong(2, 5000);
@@ -265,7 +281,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      * Add Watch Locations in devices which doesn't contains google services (Huawei Devices)
      * @param locationContext the locationContext
      */
-    private void addWatchHuawei(LocationContext locationContext) {
+    private void addWatchHms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
         boolean enableHighAccuracy = args.optBoolean(1, false);
         long maximumAge = args.optLong(2, 5000);
@@ -288,90 +304,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
 
     @SuppressLint("MissingPermission")
     private void requestLocationUpdatesHms(LocationContext locationContext, com.huawei.hms.location.LocationRequest request) {
-        if (fusedLocationProviderClientHms != null) {
-            fusedLocationProviderClientHms.requestLocationUpdates(request, locationContext.getLocationCallbackHuawei(),  Looper.getMainLooper());
-        }
-    }
-
-    /**
-     * Clear Watch Locations in devices which contains google services
-     * @param callbackContext the callbackContext
-     */
-    private void clearWatch(JSONArray args, CallbackContext callbackContext) {
-        String id = args.optString(0);
-
-        if(id != null) {
-            int requestId = id.hashCode();
-            LocationContext lc = locationContexts.get(requestId);
-
-            if(lc == null) {
-                PluginResult result = new PluginResult(PluginResult.Status.ERROR, LocationError.WATCH_ID_NOT_FOUND.toJSON());
-                callbackContext.sendPluginResult(result);
-            }
-            else {
-                this.locationContexts.delete(requestId);
-                fusedLocationClientGms.removeLocationUpdates(lc.getLocationCallback());
-
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                callbackContext.sendPluginResult(result);
-            }
-        }
-    }
-
-    /**
-     * Clear Watch Locations in devices which doesn't contains google services (Huawei Devices)
-     * @param callbackContext the callbackContext
-     */
-    private void clearWatchHMS(JSONArray args, CallbackContext callbackContext) {
-        String id = args.optString(0);
-
-        if(id != null) {
-            int requestId = id.hashCode();
-            LocationContext lc = locationContexts.get(requestId);
-
-            if(lc == null) {
-                PluginResult result = new PluginResult(PluginResult.Status.ERROR, LocationError.WATCH_ID_NOT_FOUND.toJSON());
-                callbackContext.sendPluginResult(result);
-            }
-            else {
-                this.locationContexts.delete(requestId);
-                fusedLocationProviderClientHms.removeLocationUpdates(lc.getLocationCallbackHuawei());
-
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                callbackContext.sendPluginResult(result);
-            }
-        }
-    }
-
-    @Override
-    public void onLocationResultSuccess(LocationContext locationContext, LocationResult locationResult) {
-        for (Location location : locationResult.getLocations()) {
-            try {
-                JSONObject locationObject = LocationUtils.locationToJSON(location);
-                PluginResult result = new PluginResult(PluginResult.Status.OK, locationObject);
-
-                if (locationContext.getType() == LocationContext.Type.UPDATE) {
-                    result.setKeepCallback(true);
-                }
-                else {
-                    locationContexts.delete(locationContext.getId());
-                }
-
-                locationContext.getCallbackContext().sendPluginResult(result);
-
-            } catch (JSONException e) {
-                PluginResult result = new PluginResult(PluginResult.Status.JSON_EXCEPTION, LocationError.SERIALIZATION_ERROR.toJSON());
-
-                if (locationContext.getType() == LocationContext.Type.UPDATE) {
-                    result.setKeepCallback(true);
-                }
-                else {
-                    locationContexts.delete(locationContext.getId());
-                }
-
-                locationContext.getCallbackContext().sendPluginResult(result);
-            }
-        }
+        fusedLocationClientHms.requestLocationUpdates(request, locationContext.getLocationCallbackHuawei(),  Looper.getMainLooper());
     }
 
     @Override
@@ -380,8 +313,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
 
         if (locationContext.getType() == LocationContext.Type.UPDATE) {
             result.setKeepCallback(true);
-        }
-        else {
+        } else {
             locationContexts.delete(locationContext.getId());
         }
 
@@ -389,32 +321,36 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
     }
 
     @Override
-    public void onLocationResultSuccessHuawei(LocationContext locationContext, com.huawei.hms.location.LocationResult locationResult) {
-        for (Location location : locationResult.getLocations()) {
-            try {
-                JSONObject locationObject = LocationUtils.locationToJSON(location);
-                PluginResult result = new PluginResult(PluginResult.Status.OK, locationObject);
+    public void onLocationResultSuccess(LocationContext locationContext, List<Location> locations) {
+        for (Location location : locations) {
+            onLocationResult(location, locationContext);
+        }
+    }
 
-                if (locationContext.getType() == LocationContext.Type.UPDATE) {
-                    result.setKeepCallback(true);
-                }
-                else {
-                    locationContexts.delete(locationContext.getId());
-                }
+    private void onLocationResult(Location location, LocationContext locationContext) {
+        try {
+            JSONObject locationObject = LocationUtils.locationToJSON(location);
+            PluginResult result = new PluginResult(PluginResult.Status.OK, locationObject);
 
-                locationContext.getCallbackContext().sendPluginResult(result);
-
-            } catch (JSONException e) {
-                PluginResult result = new PluginResult(PluginResult.Status.JSON_EXCEPTION, LocationError.SERIALIZATION_ERROR.toJSON());
-                if (locationContext.getType() == LocationContext.Type.UPDATE) {
-                    result.setKeepCallback(true);
-                }
-                else {
-                    locationContexts.delete(locationContext.getId());
-                }
-
-                locationContext.getCallbackContext().sendPluginResult(result);
+            if (locationContext.getType() == LocationContext.Type.UPDATE) {
+                result.setKeepCallback(true);
             }
+            else {
+                locationContexts.delete(locationContext.getId());
+            }
+
+            locationContext.getCallbackContext().sendPluginResult(result);
+
+        } catch (JSONException e) {
+            PluginResult result = new PluginResult(PluginResult.Status.JSON_EXCEPTION, LocationError.SERIALIZATION_ERROR.toJSON());
+            if (locationContext.getType() == LocationContext.Type.UPDATE) {
+                result.setKeepCallback(true);
+            }
+            else {
+                locationContexts.delete(locationContext.getId());
+            }
+
+            locationContext.getCallbackContext().sendPluginResult(result);
         }
     }
 
@@ -513,9 +449,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      * Check if we are running in devices with Google Services
      * @return true if contains, otherwise false
      */
-    private  boolean checkGMS() {
+    private boolean checkGMS() {
         GoogleApiAvailability gApi = GoogleApiAvailability.getInstance();
         int resultCode = gApi.isGooglePlayServicesAvailable(cordova.getActivity());
         return resultCode == com.google.android.gms.common.ConnectionResult.SUCCESS;
+    }
+
+    /**
+     * Display a dialog to inform the user that should have installed Google or Huawei Services to make it works
+     */
+    private void popUpGoogleOrHuaweiServicesAreNotPresent() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this.cordova.getContext());
+        builder.setTitle("Error!")
+                .setMessage("There aren't any Google or Huawei Services!")
+                .setCancelable(false)
+                .setPositiveButton("Ok", (dialog, id) -> dialog.dismiss());
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 }
