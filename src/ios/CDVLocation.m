@@ -159,25 +159,26 @@
     }
 }
  
-- (BOOL)isHighAccuracyLocationEnabled{
-    CLLocationManager *locationManager = [[CLLocationManager alloc] init];
- 
-    CLAuthorizationStatus authorizationStatus = [CLLocationManager authorizationStatus];
- 
-    if (authorizationStatus == kCLAuthorizationStatusAuthorizedWhenInUse || authorizationStatus == kCLAuthorizationStatusAuthorizedAlways) {
-        return YES;
-        // Your app has location access permission for kCLLocationAccuracyBest.
-        // You can use kCLLocationAccuracyBest for location updates.
-    } else if (authorizationStatus == kCLAuthorizationStatusNotDetermined) {
-        return NO;
-        // Location permission has not been requested yet. You can request it.
-//        [locationManager requestWhenInUseAuthorization];
+- (BOOL)isHighAccuracyLocationEnabled {
+    if (@available(iOS 14.0, *)) {
+        if (self.locationManager) {
+            switch (self.locationManager.accuracyAuthorization) {
+                case CLAccuracyAuthorizationFullAccuracy:
+                    return YES;
+                    break;
+                case CLAccuracyAuthorizationReducedAccuracy:
+                    return NO;
+                    break;
+                default:
+                    return NO;
+                    break;
+            }
+        } else {
+            return NO;
+        }
     } else {
         return NO;
-        // Your app does not have location access permission for kCLLocationAccuracyBest.
-        // You should prompt the user to grant permission in your app's settings.
     }
- 
 }
  
 - (void)_stopLocation
