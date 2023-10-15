@@ -424,12 +424,12 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
                     // Show the dialog by calling startResolutionForResult(),
                     // and check the result in onActivityResult(). We should do this but it is not working
                     // so for now we simply call for location updates directly, after presenting the dialog
-                    ResolvableApiException resolvable = (ResolvableApiException) e;
-                    resolvable.startResolutionForResult(cordova.getActivity(),
-                            REQUEST_CHECK_SETTINGS);
-                    request.setMaxWaitTime(5000);
+                   // ResolvableApiException resolvable = (ResolvableApiException) e;
+                   // resolvable.startResolutionForResult(cordova.getActivity(), REQUEST_CHECK_SETTINGS);
+                    //request.setMaxWaitTime(1000);
+                    request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
                     requestLocationUpdatesGms(locationContext, request);
-                } catch (IntentSender.SendIntentException sendEx) {
+                } catch (Exception ex) {
                     // Ignore the error.
                 }
             } else {
@@ -466,15 +466,14 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
                     // Show the dialog by calling startResolutionForResult(),
                     // and check the result in onActivityResult(). We should do this but it is not working
                     // so for now we simply call for location updates directly, after presenting the dialog
-                    com.huawei.hms.common.ResolvableApiException resolvable = (com.huawei.hms.common.ResolvableApiException) e;
-                    resolvable.startResolutionForResult(cordova.getActivity(),
-                            REQUEST_CHECK_SETTINGS);
+                   // com.huawei.hms.common.ResolvableApiException resolvable = (com.huawei.hms.common.ResolvableApiException) e;
+                  //  resolvable.startResolutionForResult(cordova.getActivity(), REQUEST_CHECK_SETTINGS);
                     // If failed for some reason, we do not use HIGH_ACCURACY
                     request.setPriority(com.huawei.hms.location.LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-                    request.setMaxWaitTime(5000);
+                    //request.setMaxWaitTime(12000);
 
                     requestLocationUpdatesHms(locationContext, request);
-                } catch (IntentSender.SendIntentException sendEx) {
+                } catch (Exception sendEx) {
                     // Ignore the error.
                 }
             } else {
