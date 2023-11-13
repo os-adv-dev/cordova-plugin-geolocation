@@ -211,17 +211,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
     private void getLocationGms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
         long timeout = args.optLong(2);
-        boolean enableHighAccuracy = args.optBoolean(0, false);
+        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, just uncomment the commented line and remove the following line
+        //boolean enableHighAccuracy = args.optBoolean(0, false);
+        boolean enableHighAccuracy = false;
         LocationRequest request = LocationRequest.create();
+        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+
 
         request.setNumUpdates(1);
 
         // This is necessary to be able to get a response when location services are initially off and then turned on before this request.
         request.setInterval(0);
 
-        if(enableHighAccuracy) {
-            request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        }
+        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statemente below
+        //if(enableHighAccuracy) {
+        //    request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        //}
 
         if(timeout != 0) {
             request.setExpirationDuration(timeout);
@@ -237,17 +242,20 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
     private void getLocationHms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
         long timeout = args.optLong(2);
-        boolean enableHighAccuracy = args.optBoolean(0, false);
+        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, just uncomment the commented line and remove the following line
+        //boolean enableHighAccuracy = args.optBoolean(0, false);
+        boolean enableHighAccuracy = false;
         com.huawei.hms.location.LocationRequest request = com.huawei.hms.location.LocationRequest.create();
-
+        request.setPriority(com.huawei.hms.location.LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
         request.setNumUpdates(1);
 
         // This is necessary to be able to get a response when location services are initially off and then turned on before this request.
         request.setInterval(0);
 
-        if(enableHighAccuracy) {
-            request.setPriority(com.huawei.hms.location.LocationRequest.PRIORITY_HIGH_ACCURACY);
-        }
+        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statemente below
+        //if(enableHighAccuracy) {
+        //    request.setPriority(com.huawei.hms.location.LocationRequest.PRIORITY_HIGH_ACCURACY);
+        //}
 
         if(timeout != 0) {
             request.setExpirationDuration(timeout);
@@ -262,16 +270,18 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      */
     private void addWatchGms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
-        boolean enableHighAccuracy = args.optBoolean(1, false);
+        //boolean enableHighAccuracy = args.optBoolean(1, false);
+        boolean enableHighAccuracy = false;
         long maximumAge = args.optLong(2, 5000);
 
         LocationRequest request = LocationRequest.create();
+        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
         request.setInterval(maximumAge);
 
-        if(enableHighAccuracy) {
-            request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        }
+        //if(enableHighAccuracy) {
+        //   request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        //}
 
         requestLocationUpdatesIfSettingsSatisfiedGms(locationContext, request);
     }
@@ -282,16 +292,18 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
      */
     private void addWatchHms(LocationContext locationContext) {
         JSONArray args = locationContext.getExecuteArgs();
-        boolean enableHighAccuracy = args.optBoolean(1, false);
+        //boolean enableHighAccuracy = args.optBoolean(1, false);
+        boolean enableHighAccuracy = false;
         long maximumAge = args.optLong(2, 5000);
 
         com.huawei.hms.location.LocationRequest request = com.huawei.hms.location.LocationRequest.create();
+        request.setPriority(com.huawei.hms.location.LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
         request.setInterval(maximumAge);
 
-        if(enableHighAccuracy) {
-            request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        }
+        //if(enableHighAccuracy) {
+        //    request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        //}
 
         requestLocationUpdatesIfSettingsSatisfiedHms(locationContext, request);
     }

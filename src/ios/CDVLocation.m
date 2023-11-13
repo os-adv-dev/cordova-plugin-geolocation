@@ -94,6 +94,8 @@
 
 - (void)startLocation:(BOOL)enableHighAccuracy
 {
+    //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, just remove the variable below and change all its occurrencies to the enableHighAccuracy variable instead.
+    BOOL disableHighAccuracy = NO; 
     if (![self isLocationServicesEnabled]) {
         [self returnLocationError:PERMISSIONDENIED withMessage:@"Location services are not enabled."];
         return;
@@ -119,7 +121,7 @@
 #ifdef __IPHONE_8_0
     NSUInteger code = [CLLocationManager authorizationStatus];
     if (code == kCLAuthorizationStatusNotDetermined && ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)] || [self.locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)])) { //iOS8+
-        __highAccuracyEnabled = enableHighAccuracy;
+        __highAccuracyEnabled = disableHighAccuracy;//enableHighAccuracy;
         if([[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"]){
             [self.locationManager requestWhenInUseAuthorization];
         } else if([[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationAlwaysUsageDescription"]) {
@@ -137,13 +139,16 @@
     [self.locationManager stopUpdatingLocation];
     [self.locationManager startUpdatingLocation];
     __locationStarted = YES;
-    if (enableHighAccuracy) {
+    
+    //if (enableHighAccuracy) {
+    if (disableHighAccuracy) {
         __highAccuracyEnabled = YES;
         // Set distance filter to 5 for a high accuracy. Setting it to "kCLDistanceFilterNone" could provide a
         // higher accuracy, but it's also just spamming the callback with useless reports which drain the battery.
         self.locationManager.distanceFilter = 5;
         // Set desired accuracy to Best.
-        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        //self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters;
     } else {
         __highAccuracyEnabled = NO;
         self.locationManager.distanceFilter = 10;
