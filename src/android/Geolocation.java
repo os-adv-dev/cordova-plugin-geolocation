@@ -223,7 +223,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         // This is necessary to be able to get a response when location services are initially off and then turned on before this request.
         request.setInterval(0);
 
-        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statemente below
+        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statement below
         //if(enableHighAccuracy) {
         //    request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         //}
@@ -252,7 +252,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         // This is necessary to be able to get a response when location services are initially off and then turned on before this request.
         request.setInterval(0);
 
-        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statemente below
+        //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statement below
         //if(enableHighAccuracy) {
         //    request.setPriority(com.huawei.hms.location.LocationRequest.PRIORITY_HIGH_ACCURACY);
         //}
