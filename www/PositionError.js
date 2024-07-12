@@ -34,5 +34,6 @@ var PositionError = function (code, message) {
 PositionError.prototype.PERMISSION_DENIED = PositionError.PERMISSION_DENIED = 1;
 PositionError.prototype.POSITION_UNAVAILABLE = PositionError.POSITION_UNAVAILABLE = 2;
 PositionError.prototype.TIMEOUT = PositionError.TIMEOUT = 3;
+PositionError.prototype.UNKNOWNERROR = PositionError.UNKNOWNERROR = 4;
 
 module.exports = PositionError;

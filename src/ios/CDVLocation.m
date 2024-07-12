@@ -95,29 +95,8 @@
 - (void)startLocation:(BOOL)enableHighAccuracy
 {
     //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, just remove the variable below and change all its occurrencies to the enableHighAccuracy variable instead.
-    BOOL disableHighAccuracy = NO; 
-    if (![self isLocationServicesEnabled]) {
-        [self returnLocationError:PERMISSIONDENIED withMessage:@"Location services are not enabled."];
-        return;
-    }
-    if (![self isAuthorized]) {
-        NSString* message = nil;
-        BOOL authStatusAvailable = [CLLocationManager respondsToSelector:@selector(authorizationStatus)]; // iOS 4.2+
-        if (authStatusAvailable) {
-            NSUInteger code = [CLLocationManager authorizationStatus];
-            if (code == kCLAuthorizationStatusNotDetermined) {
-                // could return POSITION_UNAVAILABLE but need to coordinate with other platforms
-                message = @"User undecided on application's use of location services.";
-            } else if (code == kCLAuthorizationStatusRestricted) {
-                message = @"Application's use of location services is restricted.";
-            }
-        }
-        // PERMISSIONDENIED is only PositionError that makes sense when authorization denied
-        [self returnLocationError:PERMISSIONDENIED withMessage:message];
-
-        return;
-    }
-
+    BOOL disableHighAccuracy = NO;
+    
 #ifdef __IPHONE_8_0
     NSUInteger code = [CLLocationManager authorizationStatus];
     if (code == kCLAuthorizationStatusNotDetermined && ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)] || [self.locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)])) { //iOS8+
@@ -191,6 +170,28 @@
         // No callbacks waiting on us anymore, turn off listening.
         [self _stopLocation];
     }
+}
+
+- (void)checkLocationAuthorization:(CDVInvokedUrlCommand*)command {
+    self.checkLocationAuthorizationCallbackId = command.callbackId;
+    NSString* callbackId = command.callbackId;
+    
+    CDVLocationData* lData = self.locationData;
+    if (!lData.locationCallbacks) {
+        lData.locationCallbacks = [NSMutableArray arrayWithCapacity:1];
+    }
+    
+    if (callbackId != nil) {
+        [lData.locationCallbacks addObject:callbackId];
+    }
+    
+    CLAuthorizationStatus status = [CLLocationManager authorizationStatus];
+    
+    NSInteger authorizationStatus = [self authorizationStatusToEnum:status];
+    
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsNSInteger:authorizationStatus];
+    [pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)getLocation:(CDVInvokedUrlCommand*)command
@@ -336,18 +337,95 @@
 - (void)locationManager:(CLLocationManager*)manager didFailWithError:(NSError*)error
 {
     NSLog(@"locationManager::didFailWithError %@", [error localizedFailureReason]);
-
+    
     CDVLocationData* lData = self.locationData;
     if (lData && __locationStarted) {
-        // TODO: probably have to once over the various error codes and return one of:
-        // PositionError.PERMISSION_DENIED = 1;
-        // PositionError.POSITION_UNAVAILABLE = 2;
-        // PositionError.TIMEOUT = 3;
         NSUInteger positionError = POSITIONUNAVAILABLE;
-        if (error.code == kCLErrorDenied) {
-            positionError = PERMISSIONDENIED;
+        NSString *message;
+        switch (error.code) {
+            case kCLErrorDenied:
+                positionError = PERMISSIONDENIED;
+                message = @"Location services are denied for this app. Please enable location services in the settings.";
+                break;
+            case kCLErrorLocationUnknown:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"The location could not be determined at this time. Please try again later.";
+                break;
+            case kCLErrorNetwork:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"The network is unavailable or a network error occurred. Please check your connection.";
+                break;
+            case kCLErrorHeadingFailure:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"The heading could not be determined at this time. Please try again later.";
+                break;
+            case kCLErrorPromptDeclined:
+                positionError = PERMISSIONDENIED;
+                message = @"The user declined the prompt for location services. Please enable location services in the settings.";
+                break;
+            case kCLErrorRegionMonitoringDenied:
+                positionError = PERMISSIONDENIED;
+                message = @"Region monitoring is denied for this app. Please enable location services in the settings.";
+                break;
+            case kCLErrorRegionMonitoringFailure:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Region monitoring failed. Please try setting up region monitoring again.";
+                break;
+            case kCLErrorRegionMonitoringSetupDelayed:
+                positionError = TIMEOUT;
+                message = @"Region monitoring setup was delayed. Please try again in a few moments.";
+                break;
+            case kCLErrorRegionMonitoringResponseDelayed:
+                positionError = TIMEOUT;
+                message = @"Region monitoring response was delayed. Events may be delivered with a delay.";
+                break;
+            case kCLErrorGeocodeFoundNoResult:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"The geocode request found no result. Please try again with different input.";
+                break;
+            case kCLErrorGeocodeFoundPartialResult:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"The geocode request found a partial result. Please try again with different input.";
+                break;
+            case kCLErrorGeocodeCanceled:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"The geocode request was canceled. Please try again.";
+                break;
+            case kCLErrorDeferredFailed:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Deferred location updates failed. Please try again.";
+                break;
+            case kCLErrorDeferredNotUpdatingLocation:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Deferred location updates were requested but location updates are not currently active.";
+                break;
+            case kCLErrorDeferredAccuracyTooLow:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Deferred location updates are not possible due to low accuracy. Please try again.";
+                break;
+            case kCLErrorDeferredDistanceFiltered:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Deferred location updates are not possible due to distance filtering. Please try again.";
+                break;
+            case kCLErrorDeferredCanceled:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Deferred location updates were canceled. Please try again.";
+                break;
+            case kCLErrorRangingUnavailable:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Ranging is unavailable. Please try again.";
+                break;
+            case kCLErrorRangingFailure:
+                positionError = POSITIONUNAVAILABLE;
+                message = @"Ranging failed. Please try again.";
+                break;
+            default:
+                positionError = UNKNOWNERROR;
+                message = @"An unknown error occurred. Please try again later.";
+                break;
         }
-        [self returnLocationError:positionError withMessage:[error localizedDescription]];
+        
+        [self returnLocationError:positionError withMessage:message];
     }
 
     if (error.code != kCLErrorLocationUnknown) {
@@ -362,6 +440,12 @@
     if(!__locationStarted){
         [self startLocation:__highAccuracyEnabled];
     }
+    if (self.checkLocationAuthorizationCallbackId) {
+        NSInteger authorizationStatus = [self authorizationStatusToEnum:status];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsNSInteger:authorizationStatus];
+        [pluginResult setKeepCallbackAsBool:YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.checkLocationAuthorizationCallbackId];
+    }
 }
 
 - (void)dealloc
@@ -373,6 +457,25 @@
 {
     [self _stopLocation];
     [self.locationManager stopUpdatingHeading];
+}
+
+
+
+- (NSUInteger)authorizationStatusToEnum:(CLAuthorizationStatus)status {
+    switch (status) {
+        case kCLAuthorizationStatusNotDetermined:
+            return NOT_AUTHORIZED;
+        case kCLAuthorizationStatusRestricted:
+            return NOT_AUTHORIZED;
+        case kCLAuthorizationStatusDenied:
+            return NOT_AUTHORIZED;
+        case kCLAuthorizationStatusAuthorizedAlways:
+            return AUTHORIZED;
+        case kCLAuthorizationStatusAuthorizedWhenInUse:
+            return AUTHORIZED;
+        default:
+            return NOT_AUTHORIZED;
+    }
 }
 
 @end

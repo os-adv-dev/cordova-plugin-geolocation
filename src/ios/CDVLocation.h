@@ -24,7 +24,12 @@
 enum CDVLocationStatus {
     PERMISSIONDENIED = 1,
     POSITIONUNAVAILABLE,
-    TIMEOUT
+    TIMEOUT,
+    UNKNOWNERROR
+};
+enum CDVLocationAuthorizationStatus {
+    AUTHORIZED = 1,
+    NOT_AUTHORIZED,
 };
 typedef NSUInteger CDVLocationStatus;
 
@@ -51,7 +56,9 @@ typedef NSUInteger CDVLocationStatus;
 
 @property (nonatomic, strong) CLLocationManager* locationManager;
 @property (nonatomic, strong) CDVLocationData* locationData;
+@property (nonatomic, strong) NSString *checkLocationAuthorizationCallbackId;
 
+- (void)checkLocationAuthorization:(CDVInvokedUrlCommand*)command;
 - (void)getLocation:(CDVInvokedUrlCommand*)command;
 - (void)addWatch:(CDVInvokedUrlCommand*)command;
 - (void)clearWatch:(CDVInvokedUrlCommand*)command;
