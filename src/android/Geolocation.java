@@ -48,6 +48,23 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
 
     public static final String[] permissions = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
 
+
+    public enum CDVLocationAuthorizationStatus {
+        AUTHORIZED(1),
+        NOT_AUTHORIZED(2);
+
+        private final int value;
+
+        CDVLocationAuthorizationStatus(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
+    String checkLocationAuthorizationCallbackId;
+    CallbackContext checkLocationCallbackContext;
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
@@ -63,7 +80,9 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         this.cordova.getActivity().runOnUiThread(() -> {
             try {
-                if ("getLocation".equals(action)) {
+                if ("checkLocationAuthorization".equals(action)){
+                    checkLocationAuthorization(callbackContext);
+                } else if("getLocation".equals(action)) {
                     flowGetLocationGmsOrHms(args, callbackContext);
                 } else if ("addWatch".equals(action)) {
                     flowAddWatchGmsOrHms(args, callbackContext);
@@ -76,6 +95,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         });
 
         return true;
+    }
+
+    public void checkLocationAuthorization(CallbackContext callbackContext) {
+        boolean hasPermission = hasPermission();
+        checkLocationAuthorizationCallbackId = callbackContext.getCallbackId();
+        checkLocationCallbackContext = callbackContext;
+        PluginResult result;
+        if (hasPermission){
+            result = new PluginResult(PluginResult.Status.OK, hasPermission?1:2);
+        } else {
+            PermissionHelper.requestPermissions(this, 1, permissions);
+            result = new PluginResult(PluginResult.Status.OK, 2);
+        }
+        result.setKeepCallback(true);
+        callbackContext.sendPluginResult(result);
+
     }
 
     /**
@@ -195,11 +230,22 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
                     }
                 }
             }
+
+            if (checkLocationAuthorizationCallbackId != null){
+                PluginResult result = new PluginResult(PluginResult.Status.OK, CDVLocationAuthorizationStatus.AUTHORIZED.value);
+                result.setKeepCallback(true);
+                checkLocationCallbackContext.sendPluginResult(result);
+            }
         } else {
             if(lc != null){
                 PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
                 lc.getCallbackContext().sendPluginResult(result);
                 locationContexts.delete(lc.getId());
+            }
+            if (checkLocationAuthorizationCallbackId != null){
+                PluginResult result = new PluginResult(PluginResult.Status.ILLEGAL_ACCESS_EXCEPTION, LocationError.LOCATION_PERMISSION_DENIED.toJSON());
+                result.setKeepCallback(true);
+                checkLocationCallbackContext.sendPluginResult(result);
             }
         }
     }
