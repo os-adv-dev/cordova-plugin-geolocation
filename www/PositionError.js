@@ -36,4 +36,7 @@ PositionError.prototype.POSITION_UNAVAILABLE = PositionError.POSITION_UNAVAILABL
 PositionError.prototype.TIMEOUT = PositionError.TIMEOUT = 3;
 PositionError.prototype.UNKNOWNERROR = PositionError.UNKNOWNERROR = 4;
 
-module.exports = PositionError;
+PositionAuthorizationError.prototype.AUTHORIZED = PositionAuthorizationError.AUTHORIZED = 1;
+PositionAuthorizationError.prototype.NOT_AUTHORIZED = PositionAuthorizationError.NOT_AUTHORIZED = 2;
+
+module.exports = {positionError: PositionError, positionAuthorizationError: PositionAuthorizationError};
