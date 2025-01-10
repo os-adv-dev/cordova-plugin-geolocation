@@ -5,23 +5,5 @@ repositories {
 
 dependencies {
     // Huawei Location dependency
-    implementation 'com.huawei.hms:location:6.8.0.300'
-}
-
-gradle.projectsEvaluated {
-    def gradlePropertiesFile = rootProject.file('gradle.properties')
-    if (gradlePropertiesFile.exists()) {
-        def gradleProperties = new Properties()
-        gradleProperties.load(new FileInputStream(gradlePropertiesFile))
-        def hasChanged = false
-        if (gradleProperties['android.enableJetifier'] != 'true') {
-            gradleProperties['android.enableJetifier'] = 'true'
-            hasChanged = true
-        }
-        if (hasChanged) {
-            gradleProperties.store(gradlePropertiesFile.newWriter(), 'Updated by build-extras.gradle')
-        }
-    } else {
-        gradlePropertiesFile.text = "android.useAndroidX=true\nandroid.enableJetifier=true"
-    }
+    implementation 'com.huawei.hms:location:6.12.0.300'
 }
