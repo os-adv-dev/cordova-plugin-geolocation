@@ -18,6 +18,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -103,7 +104,7 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         checkLocationCallbackContext = callbackContext;
         PluginResult result;
         if (hasPermission){
-            result = new PluginResult(PluginResult.Status.OK, hasPermission?1:2);
+            result = new PluginResult(PluginResult.Status.OK, 1);
         } else {
             PermissionHelper.requestPermissions(this, 1, permissions);
             result = new PluginResult(PluginResult.Status.OK, 2);
@@ -200,7 +201,9 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
     }
 
     @Override
-    public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         // In case a permission request is cancelled, the permissions and grantResults arrays are empty.
         // We must exit immediately to avoid calling getLocation erroneously.
         if(permissions == null || permissions.length == 0) {
@@ -260,22 +263,19 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, just uncomment the commented line and remove the following line
         //boolean enableHighAccuracy = args.optBoolean(0, false);
         boolean enableHighAccuracy = false;
-        LocationRequest request = LocationRequest.create();
-        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
-
-        request.setNumUpdates(1);
-
-        // This is necessary to be able to get a response when location services are initially off and then turned on before this request.
-        request.setInterval(0);
+        LocationRequest.Builder requestBuilder = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+                .setMaxUpdates(1)
+                .setIntervalMillis(0);// This is necessary to be able to get a response when location services are initially off and then turned on before this request.
 
         //Forcing the app to avoid the High Accuracy. To restore the standard plugin behavior, uncomment the if statement below
         //if(enableHighAccuracy) {
         //    request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         //}
+        LocationRequest request = requestBuilder.build();
 
         if(timeout != 0) {
-            request.setExpirationDuration(timeout);
+            requestBuilder.setDurationMillis(timeout);
         }
 
         requestLocationUpdatesIfSettingsSatisfiedGms(locationContext, request);
@@ -320,10 +320,9 @@ public class Geolocation extends CordovaPlugin implements OnLocationResultEventL
         boolean enableHighAccuracy = false;
         long maximumAge = args.optLong(2, 5000);
 
-        LocationRequest request = LocationRequest.create();
-        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-
-        request.setInterval(maximumAge);
+        LocationRequest request = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY)
+                .setIntervalMillis(maximumAge)
+                .build();
 
         //if(enableHighAccuracy) {
         //   request.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
