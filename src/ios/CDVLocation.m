@@ -67,7 +67,7 @@
     BOOL authorizationStatusClassPropertyAvailable = [CLLocationManager respondsToSelector:@selector(authorizationStatus)]; // iOS 4.2+
 
     if (authorizationStatusClassPropertyAvailable) {
-        NSUInteger authStatus = [CLLocationManager authorizationStatus];
+        NSUInteger authStatus = locationManager.authorizationStatus;
 #ifdef __IPHONE_8_0
         if ([self.locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {  //iOS 8.0+
             return (authStatus == kCLAuthorizationStatusAuthorizedWhenInUse) || (authStatus == kCLAuthorizationStatusAuthorizedAlways) || (authStatus == kCLAuthorizationStatusNotDetermined);
@@ -98,7 +98,7 @@
     BOOL disableHighAccuracy = NO;
     
 #ifdef __IPHONE_8_0
-    NSUInteger code = [CLLocationManager authorizationStatus];
+    NSUInteger code = locationManager.authorizationStatus;
     if (code == kCLAuthorizationStatusNotDetermined && ([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)] || [self.locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)])) { //iOS8+
         __highAccuracyEnabled = disableHighAccuracy;//enableHighAccuracy;
         if([[NSBundle mainBundle] objectForInfoDictionaryKey:@"NSLocationWhenInUseUsageDescription"]){
@@ -185,7 +185,7 @@
         [lData.locationCallbacks addObject:callbackId];
     }
     
-    CLAuthorizationStatus status = [CLLocationManager authorizationStatus];
+    CLAuthorizationStatus status = locationManager.authorizationStatus;
     
     NSInteger authorizationStatus = [self authorizationStatusToEnum:status];
     
@@ -215,7 +215,7 @@
                 lData.locationCallbacks = [NSMutableArray arrayWithCapacity:1];
             }
 
-            if (!__locationStarted || (__highAccuracyEnabled != enableHighAccuracy)) {
+            if (!self->__locationStarted || (self->__highAccuracyEnabled != enableHighAccuracy)) {
                 // add the callbackId into the array so we can call back when get data
                 if (callbackId != nil) {
                     [lData.locationCallbacks addObject:callbackId];
@@ -435,11 +435,31 @@
 }
 
 //iOS8+
--(void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
+/*- (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status
 {
     if(!__locationStarted){
         [self startLocation:__highAccuracyEnabled];
     }
+    if (self.checkLocationAuthorizationCallbackId) {
+        NSInteger authorizationStatus = [self authorizationStatusToEnum:status];
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsNSInteger:authorizationStatus];
+        [pluginResult setKeepCallbackAsBool:YES];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:self.checkLocationAuthorizationCallbackId];
+    }
+}*/
+
+- (void)locationManagerDidChangeAuthorization:(CLLocationManager *)manager {
+    CLAuthorizationStatus status;
+    if (@available(iOS 14.0, *)) {
+        status = manager.authorizationStatus;
+    } else {
+        status = locationManager.authorizationStatus;
+    }
+
+    if (!__locationStarted) {
+        [self startLocation:__highAccuracyEnabled];
+    }
+
     if (self.checkLocationAuthorizationCallbackId) {
         NSInteger authorizationStatus = [self authorizationStatusToEnum:status];
         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsNSInteger:authorizationStatus];
